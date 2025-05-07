@@ -24,7 +24,7 @@ public class SensorEventServiceImpl implements SensorEventService {
     public void collect(SensorEvent event) {
         SensorEventAvro sensorEventAvro = mapToAvro(event);
         kafkaClient.getProducer().send(new ProducerRecord<>(topic, sensorEventAvro));
-        log.info("To topic {} sent message with sensor event {}", topic, event);
+//        log.info("To topic {} sent message with sensor event {}", topic, event);
     }
 
     private SensorEventAvro mapToAvro(SensorEvent event) {

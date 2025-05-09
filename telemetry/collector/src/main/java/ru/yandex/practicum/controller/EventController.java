@@ -9,16 +9,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.model.hub.HubEvent;
 import ru.yandex.practicum.model.sensor.SensorEvent;
-import ru.yandex.practicum.service.hub.HubEventService;
-import ru.yandex.practicum.service.sensor.SensorEventService;
+import ru.yandex.practicum.service.EventService;
 
 @Slf4j
 @RestController
 @RequestMapping("/events")
 @RequiredArgsConstructor
 public class EventController {
-    private final SensorEventService sensorEventService;
-    private final HubEventService hubEventService;
+    private final EventService<SensorEvent> sensorEventService;
+    private final EventService<HubEvent> hubEventService;
 
     @PostMapping("/sensors")
     public void collectSensorEvent(@RequestBody @Valid SensorEvent sensorEvent) {

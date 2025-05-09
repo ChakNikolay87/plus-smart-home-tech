@@ -19,36 +19,46 @@ public class KafkaProducerConfig {
     private String bootstrapAddress;
 
     @Bean
-    KafkaClient getClient() {
-        return new KafkaClient() {
+    public KafkaClient kafkaClient() {
+        return new KafkaClientImpl(bootstrapAddress);
+    }
 
-            private Producer<String, SpecificRecordBase> producer;
+    private static class KafkaClientImpl implements KafkaClient {
 
-            @Override
-            public Producer<String, SpecificRecordBase> getProducer() {
-                if (producer == null) {
-                    initProducer();
-                }
-                return producer;
-            }
+        private final String bootstrapAddress;
+        private Producer<String, SpecificRecordBase> producer;
 
-            private void initProducer() {
-                Properties config = new Properties();
-                config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
-                config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, VoidSerializer.class);
-                config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, GeneralKafkaSerializer.class);
+        public KafkaClientImpl(String bootstrapAddress) {
+            this.bootstrapAddress = bootstrapAddress;
+        }
 
-                producer = new KafkaProducer<>(config);
-            }
-
-            @Override
-            public void stop() {
-                if (producer != null) {
-                    producer.flush();
-                    producer.close();
+        @Override
+        public Producer<String, SpecificRecordBase> getProducer() {
+            if (producer == null) {
+                synchronized (this) {
+                    if (producer == null) {
+                        initProducer();
+                    }
                 }
             }
-        };
+            return producer;
+        }
+
+        private void initProducer() {
+            Properties config = new Properties();
+            config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
+            config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, VoidSerializer.class);
+            config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, GeneralKafkaSerializer.class);
+
+            producer = new KafkaProducer<>(config);
+        }
+
+        @Override
+        public void stop() {
+            if (producer != null) {
+                producer.flush();
+                producer.close();
+            }
+        }
     }
 }
-

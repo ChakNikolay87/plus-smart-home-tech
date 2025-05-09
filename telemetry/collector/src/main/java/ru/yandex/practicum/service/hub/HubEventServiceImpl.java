@@ -8,14 +8,14 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.kafka.KafkaClient;
 import ru.yandex.practicum.kafka.telemetry.event.*;
 import ru.yandex.practicum.model.hub.*;
+import ru.yandex.practicum.service.EventService;
 
 import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class HubEventServiceImpl implements HubEventService {
+public class HubEventServiceImpl implements EventService<HubEvent> {
     private final KafkaClient kafkaClient;
 
     @Value(value = "${hubEventTopic}")
@@ -24,43 +24,19 @@ public class HubEventServiceImpl implements HubEventService {
     @Override
     public void collect(HubEvent event) {
         HubEventAvro hubEventAvro = mapToAvro(event);
-        kafkaClient.getProducer().send(new ProducerRecord<>(topic,hubEventAvro));
+        kafkaClient.getProducer().send(new ProducerRecord<>(topic, hubEventAvro));
         log.info("To topic {} sent message with hub event {}", topic, event);
     }
 
     private HubEventAvro mapToAvro(HubEvent event) {
-        Object payload;
-        switch (event) {
-            case DeviceAddedEvent deviceAddedEvent -> payload = DeviceAddedEventAvro.newBuilder()
-                    .setId(deviceAddedEvent.getId())
-                    .setType(DeviceTypeAvro.valueOf(deviceAddedEvent.getDeviceType().name()))
-                    .build();
+        Object payload = switch (event) {
+            case DeviceAddedEvent deviceAddedEvent -> mapToDeviceAddedAvro(deviceAddedEvent);
+            case DeviceRemovedEvent deviceRemovedEvent -> mapToDeviceRemovedAvro(deviceRemovedEvent);
+            case ScenarioAddedEvent scenarioAddedEvent -> mapToScenarioAddedAvro(scenarioAddedEvent);
+            case ScenarioRemovedEvent scenarioRemovedEvent -> mapToScenarioRemovedAvro(scenarioRemovedEvent);
+            default -> throw new IllegalArgumentException("Unsupported event type: " + event.getClass().getName());
+        };
 
-            case DeviceRemovedEvent deviceRemovedEvent -> payload = DeviceRemovedEventAvro.newBuilder()
-                    .setId(deviceRemovedEvent.getId())
-                    .build();
-
-            case ScenarioAddedEvent scenarioAddedEvent -> {
-                List<DeviceActionAvro> deviceActionAvroList = scenarioAddedEvent.getActions().stream()
-                        .map(this::map)
-                        .toList();
-                List<ScenarioConditionAvro> scenarioConditionAvroList = scenarioAddedEvent.getConditions().stream()
-                        .map(this::map)
-                        .toList();
-                payload = ScenarioAddedEventAvro.newBuilder()
-                        .setName(scenarioAddedEvent.getName())
-                        .setActions(deviceActionAvroList)
-                        .setConditions(scenarioConditionAvroList)
-                        .build();
-            }
-
-            case null, default -> {
-                ScenarioRemovedEvent scenarioRemovedEvent = (ScenarioRemovedEvent) event;
-                payload = ScenarioRemovedEventAvro.newBuilder()
-                        .setName(Objects.requireNonNull(scenarioRemovedEvent).getName())
-                        .build();
-            }
-        }
         return HubEventAvro.newBuilder()
                 .setHubId(event.getHubId())
                 .setTimestamp(event.getTimestamp())
@@ -68,7 +44,40 @@ public class HubEventServiceImpl implements HubEventService {
                 .build();
     }
 
-    private DeviceActionAvro map(DeviceAction action) {
+    private DeviceAddedEventAvro mapToDeviceAddedAvro(DeviceAddedEvent event) {
+        return DeviceAddedEventAvro.newBuilder()
+                .setId(event.getId())
+                .setType(DeviceTypeAvro.valueOf(event.getDeviceType().name()))
+                .build();
+    }
+
+    private DeviceRemovedEventAvro mapToDeviceRemovedAvro(DeviceRemovedEvent event) {
+        return DeviceRemovedEventAvro.newBuilder()
+                .setId(event.getId())
+                .build();
+    }
+
+    private ScenarioAddedEventAvro mapToScenarioAddedAvro(ScenarioAddedEvent event) {
+        List<DeviceActionAvro> deviceActionAvroList = event.getActions().stream()
+                .map(this::mapDeviceAction)
+                .toList();
+        List<ScenarioConditionAvro> scenarioConditionAvroList = event.getConditions().stream()
+                .map(this::mapScenarioCondition)
+                .toList();
+        return ScenarioAddedEventAvro.newBuilder()
+                .setName(event.getName())
+                .setActions(deviceActionAvroList)
+                .setConditions(scenarioConditionAvroList)
+                .build();
+    }
+
+    private ScenarioRemovedEventAvro mapToScenarioRemovedAvro(ScenarioRemovedEvent event) {
+        return ScenarioRemovedEventAvro.newBuilder()
+                .setName(event.getName())
+                .build();
+    }
+
+    private DeviceActionAvro mapDeviceAction(DeviceAction action) {
         return DeviceActionAvro.newBuilder()
                 .setType(ActionTypeAvro.valueOf(action.getType().name()))
                 .setSensorId(action.getSensorId())
@@ -76,7 +85,7 @@ public class HubEventServiceImpl implements HubEventService {
                 .build();
     }
 
-    private ScenarioConditionAvro map(ScenarioCondition condition) {
+    private ScenarioConditionAvro mapScenarioCondition(ScenarioCondition condition) {
         return ScenarioConditionAvro.newBuilder()
                 .setSensorId(condition.getSensorId())
                 .setType(ConditionTypeAvro.valueOf(condition.getType().name()))

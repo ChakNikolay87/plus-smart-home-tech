@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: collector
+
+logging:
+  level:
+    ru.yandex.practicum: TRACE
+    org:
+      springframework: ERROR
+      apache.kafka: ERROR
+
+collector:
+  kafka:
+    producer:
+      properties:
+        "bootstrap.servers": localhost:9092
+        "client.id": "telemetry.collection"
+        "key.serializer": org.apache.kafka.common.serialization.StringSerializer
+        "value.serializer": ru.yandex.practicum.kafka.GeneralAvroSerializer
+      topics:
+        sensor-events: telemetry.sensor.v1
+        hubs-events: telemetry.hubs.v1
+
+grpc:
+  client:
+    collector:
+      address: 'static://127.0.0.1:9090'
+      enable-keep-alive: true
+      keep-alive-without-calls: true
+      negotiation-type: plaintext

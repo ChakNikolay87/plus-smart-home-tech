@@ -1,33 +1,68 @@
 package ru.yandex.practicum.controller;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import ru.yandex.practicum.model.hub.HubEvent;
-import ru.yandex.practicum.model.sensor.SensorEvent;
-import ru.yandex.practicum.service.EventService;
+import com.google.protobuf.Empty;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+import net.devh.boot.grpc.server.service.GrpcService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
+import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
+import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
+import ru.yandex.practicum.handler.HubEventHandler;
+import ru.yandex.practicum.handler.SensorEventHandler;
 
-@Slf4j
-@RestController
-@RequestMapping("/events")
-@RequiredArgsConstructor
-public class EventController {
-    private final EventService<SensorEvent> sensorEventService;
-    private final EventService<HubEvent> hubEventService;
 
-    @PostMapping("/sensors")
-    public void collectSensorEvent(@RequestBody @Valid SensorEvent sensorEvent) {
-        log.info("Received request to collect sensor event: {}", sensorEvent);
-        sensorEventService.collect(sensorEvent);
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@GrpcService
+public class EventController extends CollectorControllerGrpc.CollectorControllerImplBase {
+
+    private static final Logger log = LoggerFactory.getLogger(EventController.class);
+    private final Map<HubEventProto.PayloadCase, HubEventHandler> hubEventHandlerMap;
+    private final Map<SensorEventProto.PayloadCase, SensorEventHandler> sensorEventHandlerMap;
+
+    public EventController(Set<HubEventHandler> hubEventHandlerSet,
+                          Set<SensorEventHandler> sensorEventHandlerSet) {
+        this.hubEventHandlerMap = hubEventHandlerSet.stream()
+                .collect(Collectors.toMap(HubEventHandler::getMessageType, Function.identity()));
+        this.sensorEventHandlerMap = sensorEventHandlerSet.stream()
+                .collect(Collectors.toMap(SensorEventHandler::getMessageType, Function.identity()));
     }
 
-    @PostMapping("/hubs")
-    public void collectHubEvent(@RequestBody @Valid HubEvent hubEvent) {
-        log.info("Received request to collect hub event: {}", hubEvent);
-        hubEventService.collect(hubEvent);
+    @Override
+    public void collectHubEvent (HubEventProto request, StreamObserver<Empty> responseObserver) {
+        try {
+            log.info("-> Hub event: {}", request);
+            hubEventHandlerMap.get(request.getPayloadCase()).handle(request);
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(new StatusRuntimeException(
+                    Status.INTERNAL
+                            .withDescription(e.getLocalizedMessage())
+                            .withCause(e)
+            ));
+        }
+    }
+
+    @Override
+    public void collectSensorEvent (SensorEventProto request, StreamObserver<Empty> responseObserver) {
+        try {
+            log.info("-> Sensor event: {}", request);
+            sensorEventHandlerMap.get(request.getPayloadCase()).handle(request);
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(new StatusRuntimeException(
+                    Status.INTERNAL
+                            .withDescription(e.getLocalizedMessage())
+                            .withCause(e)
+            ));
+        }
     }
 }

@@ -1,5 +1,6 @@
-package ru.yandex.practicum.telemetry.collector.kafka;
+package ru.yandex.practicum.aggregator.kafka;
 
+import jakarta.annotation.PreDestroy;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -30,11 +31,20 @@ public class KafkaEventProducer {
     }
 
     public Future<RecordMetadata> send(String topic, String key, SpecificRecordBase value) {
-        ProducerRecord<String, SpecificRecordBase> record = new ProducerRecord<>(topic, key, value);
-        return producer.send(record);
+        return producer.send(new ProducerRecord<>(topic, key, value));
+    }
+
+    public void flush() {
+        producer.flush();
     }
 
     public void close() {
+        producer.close();
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        producer.flush();
         producer.close();
     }
 }

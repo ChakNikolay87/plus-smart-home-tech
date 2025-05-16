@@ -20,12 +20,14 @@ public class AvroSerializer implements Serializer<SpecificRecordBase> {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] result = null;
             encoder = encoderFactory.binaryEncoder(out, encoder);
+
             if (data != null) {
                 DatumWriter<SpecificRecordBase> writer = new SpecificDatumWriter<>(data.getSchema());
                 writer.write(data, encoder);
                 encoder.flush();
                 result = out.toByteArray();
             }
+
             return result;
         } catch (IOException ex) {
             throw new SerializationException(String.format("Ошибка сериализации данных для топика [ %s ]", topic), ex);

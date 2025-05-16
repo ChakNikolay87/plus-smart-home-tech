@@ -4,7 +4,6 @@ protocol SensorEventProtocol {
 	record ClimateSensorAvro {
 		int temperature_c;
 		int humidity;
-
 		int co2_level;
 	}
 

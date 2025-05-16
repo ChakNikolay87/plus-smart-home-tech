@@ -27,6 +27,7 @@ public class BaseAvroDeserializer<T extends SpecificRecordBase> implements Deser
         if (data == null || data.length == 0) {
             return null;
         }
+
         try (ByteArrayInputStream input = new ByteArrayInputStream(data)) {
             Decoder decoder = decoderFactory.binaryDecoder(input, null);
             DatumReader<T> reader = new SpecificDatumReader<>(schema);

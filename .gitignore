@@ -1,5 +1,5 @@
 ### IntelliJ IDEA ###
-../test/plus-smart-home-tech-2-collector-grpc/.idea/
+.idea/
 **/.idea/
 *.iws
 *.iml

@@ -6,8 +6,8 @@ import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.kafka.client.KafkaClient;
-import ru.yandex.practicum.telemetry.collector.configuration.KafkaConfig;
-import ru.yandex.practicum.model.TopicType;
+import ru.yandex.practicum.telemetry.collector.configuration.CollectorProducerConfig;
+import ru.yandex.practicum.TopicType;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -16,7 +16,7 @@ import java.lang.reflect.InvocationTargetException;
 @Slf4j
 public class KafkaEventProducer {
 
-    private final KafkaConfig kafkaConfig;
+    private final CollectorProducerConfig kafkaConfig;
 
     private final KafkaClient client;
 
@@ -31,7 +31,7 @@ public class KafkaEventProducer {
         ProducerRecord<String, SpecificRecordBase> record = new ProducerRecord<>(topic, null, event);
         log.trace("\nKafkaEventProducer: record {}, class {}", record,
                 record.value() != null ? getPayloadClass(record.value()) : null);
-        client.getProducer(kafkaConfig.getConfigName(), kafkaConfig.getProducer().getProperties()).send(record);
+        client.getProducer(kafkaConfig.getProducer().getProperties()).send(record);
     }
 
     private String getPayloadClass(Object event) {

@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.client.KafkaClient;
 import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
-import ru.yandex.practicum.telemetry.aggregator.configuration.KafkaConsumerConfig;
-import ru.yandex.practicum.telemetry.aggregator.configuration.KafkaProducerConfig;
+import ru.yandex.practicum.telemetry.aggregator.configuration.SensorsConsumerConfig;
+import ru.yandex.practicum.telemetry.aggregator.configuration.SnapshotsProducerConfig;
 
 import java.time.Duration;
 
@@ -27,8 +27,8 @@ import java.time.Duration;
 public class AggregationStarter {
 
     private final KafkaClient client;
-    private final KafkaProducerConfig kafkaProducerConfig;
-    private final KafkaConsumerConfig kafkaConsumerConfig;
+    private final SnapshotsProducerConfig snapshotsProducerConfig;
+    private final SensorsConsumerConfig sensorsConsumerConfig;
     protected KafkaConsumer<String, SpecificRecordBase> consumer;
     protected KafkaProducer<String, SpecificRecordBase> producer;
     private final AggregationState aggregationState;
@@ -40,11 +40,9 @@ public class AggregationStarter {
      */
 
     public void start() {
-        consumer = client.getKafkaConsumer(kafkaConsumerConfig.getConfigName(),
-                        kafkaConsumerConfig.getConsumerConfig().getProperties());
-        consumer.subscribe(kafkaConsumerConfig.getConsumerConfig().getTopics().values().stream().toList());
-        producer = client.getKafkaProducer(kafkaProducerConfig.getConfigName(),
-                kafkaProducerConfig.getProducerConfig().getProperties());
+        consumer = client.getKafkaConsumer(sensorsConsumerConfig.getConsumerConfig().getProperties());
+        consumer.subscribe(sensorsConsumerConfig.getConsumerConfig().getTopics().values().stream().toList());
+        producer = client.getKafkaProducer(snapshotsProducerConfig.getProducerConfig().getProperties());
 
         try {
             // Цикл обработки событий
@@ -52,12 +50,15 @@ public class AggregationStarter {
                 try {
                     ConsumerRecords<String, SpecificRecordBase> records = consumer.poll(Duration.ofMillis(5000));
                     if (!records.isEmpty()) {
+                        log.trace("\nAggregationStarter: accepted {}", records);
                         for (ConsumerRecord<String, SpecificRecordBase> record : records) {
                             // Здесь происходит обработка полученных данных
                                     SensorEventAvro sensorEventAvro = (SensorEventAvro) record.value();
                                     SensorsSnapshotAvro thisSnapshot = aggregationState.sensorEventHandle(sensorEventAvro);
-                                    if (thisSnapshot != null)
+                                    if (thisSnapshot != null) {
+                                        log.trace("\nAggregationStarter: new snapshot for send {}", thisSnapshot);
                                         producer.send(new ProducerRecord<>("telemetry.snapshots.v1", null, thisSnapshot));
+                                    }
                         }
                         consumer.commitSync();
                     }

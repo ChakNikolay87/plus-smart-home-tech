@@ -10,13 +10,13 @@ import java.util.Map;
 
 public interface KafkaClient {
 
-    Producer<String, SpecificRecordBase> getProducer(String configName, Map<String, String> properties);
+    Producer<String, SpecificRecordBase> getProducer(Map<String, String> properties);
 
-    Consumer<String, SpecificRecordBase> getConsumer(String configName, Map<String, String> properties);
+    Consumer<String, SpecificRecordBase> getConsumer(Map<String, String> properties);
 
-    KafkaProducer<String, SpecificRecordBase> getKafkaProducer(String configName, Map<String, String> properties);
+    KafkaProducer<String, SpecificRecordBase> getKafkaProducer(Map<String, String> properties);
 
-    KafkaConsumer<String, SpecificRecordBase> getKafkaConsumer(String configName, Map<String, String> properties);
+    KafkaConsumer<String, SpecificRecordBase> getKafkaConsumer(Map<String, String> properties);
 
     void stop();
 }

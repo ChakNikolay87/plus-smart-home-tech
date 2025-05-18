@@ -1,14 +1,12 @@
 package ru.yandex.practicum.telemetry.collector.service.handler.mapper;
 
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.grpc.telemetry.event.ActionTypeProto;
 import ru.yandex.practicum.grpc.telemetry.event.ConditionOperationProto;
 import ru.yandex.practicum.grpc.telemetry.event.ConditionTypeProto;
 import ru.yandex.practicum.grpc.telemetry.event.ScenarioConditionProto;
-import ru.yandex.practicum.telemetry.collector.model.device.types.ActionType;
-import ru.yandex.practicum.telemetry.collector.model.device.types.ConditionOperation;
-import ru.yandex.practicum.telemetry.collector.model.device.types.ConditionType;
-import ru.yandex.practicum.telemetry.collector.model.device.types.ScenarioCondition;
+import ru.yandex.practicum.model.device.types.ConditionOperation;
+import ru.yandex.practicum.model.device.types.ConditionType;
+import ru.yandex.practicum.model.device.types.ScenarioCondition;
 
 import java.util.List;
 

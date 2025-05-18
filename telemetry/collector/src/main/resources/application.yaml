@@ -1,14 +1,12 @@
 spring:
   application:
     name: collector
-
 server:
-  port: 8080
+  port: 8081
 
 grpc:
   server:
     port: 59091
-
   client:
     analytics:
       address: static://localhost:9091
@@ -32,6 +30,7 @@ collector:
       topics:
         sensor-events: telemetry.sensors.v1
         hubs-events: telemetry.hubs.v1
+
 
 sensor:
   motionSensors:

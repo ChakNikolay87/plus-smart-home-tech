@@ -5,8 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.kafka.client.KafkaClient;
 import ru.yandex.practicum.telemetry.collector.configuration.KafkaConfig;
-import ru.yandex.practicum.telemetry.collector.model.TopicType;
+import ru.yandex.practicum.model.TopicType;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -30,7 +31,7 @@ public class KafkaEventProducer {
         ProducerRecord<String, SpecificRecordBase> record = new ProducerRecord<>(topic, null, event);
         log.trace("\nKafkaEventProducer: record {}, class {}", record,
                 record.value() != null ? getPayloadClass(record.value()) : null);
-        client.getProducer().send(record);
+        client.getProducer(kafkaConfig.getConfigName(), kafkaConfig.getProducer().getProperties()).send(record);
     }
 
     private String getPayloadClass(Object event) {

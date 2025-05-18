@@ -1,12 +1,11 @@
 package ru.yandex.practicum.telemetry.collector.service.handler.sensor;
 
-import com.google.protobuf.GeneratedMessageV3;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.specific.SpecificRecordBase;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
-import ru.yandex.practicum.telemetry.collector.model.TopicType;
+import ru.yandex.practicum.model.TopicType;
 import ru.yandex.practicum.telemetry.collector.service.KafkaEventProducer;
 import ru.yandex.practicum.telemetry.collector.service.handler.SensorEventHandler;
 

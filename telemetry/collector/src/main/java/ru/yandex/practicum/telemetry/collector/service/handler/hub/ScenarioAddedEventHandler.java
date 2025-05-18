@@ -5,15 +5,11 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.ScenarioAddedEventProto;
 import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
-import ru.yandex.practicum.telemetry.collector.model.device.HubEvent;
-import ru.yandex.practicum.telemetry.collector.model.device.HubEventType;
-import ru.yandex.practicum.telemetry.collector.model.device.events.ScenarioAddedEvent;
-import ru.yandex.practicum.telemetry.collector.model.device.types.ConditionOperation;
-import ru.yandex.practicum.telemetry.collector.model.device.types.DeviceAction;
-import ru.yandex.practicum.telemetry.collector.model.device.types.ScenarioCondition;
+import ru.yandex.practicum.model.device.types.DeviceAction;
+import ru.yandex.practicum.model.device.types.ScenarioCondition;
 import ru.yandex.practicum.telemetry.collector.service.KafkaEventProducer;
-import ru.yandex.practicum.telemetry.collector.service.handler.mapper.ActionMapper;
-import ru.yandex.practicum.telemetry.collector.service.handler.mapper.ConditionsMapper;
+import ru.yandex.practicum.mappers.ActionMapper;
+import ru.yandex.practicum.mappers.ConditionsMapper;
 import ru.yandex.practicum.telemetry.collector.service.handler.mapper.ProtoActionMapper;
 import ru.yandex.practicum.telemetry.collector.service.handler.mapper.ProtoConditionMapper;
 
@@ -36,9 +32,6 @@ public class ScenarioAddedEventHandler extends BaseHubEventHandler<ScenarioAdded
         List<DeviceAction> actList =
                 ProtoActionMapper.actionProtoListToActionList(sceEvent.getActionList());
 
-        ScenarioAddedEvent javaEvent = ScenarioAddedEvent.builder()
-                .name(sceEvent.getName())
-                .build();
         ScenarioAddedEventAvro.Builder builder = ScenarioAddedEventAvro.newBuilder();
         builder.setName(sceEvent.getName());
         builder.setActions(ActionMapper.devAtcListToAvro(actList));

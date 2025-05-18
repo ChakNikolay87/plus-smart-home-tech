@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties("collector.kafka")
 public class KafkaConfig {
     private ProducerConfig producer;
+    private final String configName = "collector-producer";
 
     @PostConstruct
     public void checkInit() {

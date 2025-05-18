@@ -37,7 +37,7 @@ protocol HubEventProtocol {
 	}
 
 	record DeviceRemovedEventAvro {
-		string removed_id;
+		string id;
 	}
 
 	record ScenarioConditionAvro {

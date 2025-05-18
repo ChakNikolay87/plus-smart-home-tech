@@ -1,14 +1,10 @@
 package ru.yandex.practicum.telemetry.collector.service.handler.sensor;
 
-import com.google.protobuf.GeneratedMessageV3;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.grpc.telemetry.event.MotionSensorProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 import ru.yandex.practicum.kafka.telemetry.event.MotionSensorAvro;
-import ru.yandex.practicum.telemetry.collector.model.sensor.MotionSensorEvent;
-import ru.yandex.practicum.telemetry.collector.model.sensor.SensorEvent;
-import ru.yandex.practicum.telemetry.collector.model.sensor.SensorEventType;
 import ru.yandex.practicum.telemetry.collector.service.KafkaEventProducer;
 
 @Service

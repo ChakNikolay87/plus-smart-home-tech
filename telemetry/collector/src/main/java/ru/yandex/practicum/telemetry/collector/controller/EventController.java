@@ -9,8 +9,8 @@ import net.devh.boot.grpc.server.service.GrpcService;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
-import ru.yandex.practicum.telemetry.collector.service.handler.HubEventHandler;
-import ru.yandex.practicum.telemetry.collector.service.handler.SensorEventHandler;
+import ru.yandex.practicum.telemetry.collector.service.handler.HubProtoHandler;
+import ru.yandex.practicum.telemetry.collector.service.handler.SensorProtoHandler;
 
 import java.util.Map;
 import java.util.Set;
@@ -20,31 +20,29 @@ import java.util.stream.Collectors;
 @GrpcService
 @Slf4j
 public class EventController extends CollectorControllerGrpc.CollectorControllerImplBase {
-    private final Map<SensorEventProto.PayloadCase, SensorEventHandler> sensorEventHandlers;
-    private final Map<HubEventProto.PayloadCase, HubEventHandler> hubEventHandlers;
+    private final Map<SensorEventProto.PayloadCase, SensorProtoHandler> sensorProtoHandlers;
+    private final Map<HubEventProto.PayloadCase, HubProtoHandler> hubProtoHandlers;
 
 
-    public EventController(Set<SensorEventHandler> sensorEventHandlers, Set<HubEventHandler> hubEventHandlers) {
-        this.sensorEventHandlers = sensorEventHandlers.stream()
-                .collect(Collectors.toMap(SensorEventHandler::getMessageType, Function.identity()));
-        this.hubEventHandlers = hubEventHandlers.stream()
-                .collect(Collectors.toMap(HubEventHandler::getMessageType, Function.identity()));
+    public EventController(Set<SensorProtoHandler> sensorEventHandlers, Set<HubProtoHandler> hubEventHandlers) {
+        this.sensorProtoHandlers = sensorEventHandlers.stream()
+                .collect(Collectors.toMap(SensorProtoHandler::getMessageType, Function.identity()));
+        this.hubProtoHandlers = hubEventHandlers.stream()
+                .collect(Collectors.toMap(HubProtoHandler::getMessageType, Function.identity()));
 
     }
 
     @Override
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
-        log.trace("\nEventController.collectSensorEvent: (toString) accepted {}", request.toString());
+        log.info("\nEventController.collectSensorEvent: (toString) accepted {}", request.toString());
         if (request.getPayloadCase().equals(SensorEventProto.PayloadCase.CLIMATE_SENSOR_EVENT)) {
-            log.trace("\nUnknown fields: {}", request.getClimateSensorEvent().getUnknownFields());
+            log.info("\nUnknown fields: {}", request.getClimateSensorEvent().getUnknownFields());
         }
-        if (!sensorEventHandlers.containsKey(request.getPayloadCase())) {
+        if (!sensorProtoHandlers.containsKey(request.getPayloadCase())) {
             throw new IllegalArgumentException("Handler for request" + request + " not found.");
         }
         try {
-            // здесь реализуется бизнес-логика
-            // ...
-            sensorEventHandlers.get(request.getPayloadCase()).handle(request);
+            sensorProtoHandlers.get(request.getPayloadCase()).handle(request);
 
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
@@ -59,14 +57,12 @@ public class EventController extends CollectorControllerGrpc.CollectorController
 
     @Override
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
-        log.trace("\nEventController.collectHubEvent: accepted {}", request);
-        if (!hubEventHandlers.containsKey(request.getPayloadCase())) {
+        log.info("\nEventController.collectHubEvent: accepted {}", request);
+        if (!hubProtoHandlers.containsKey(request.getPayloadCase())) {
             throw new IllegalArgumentException("Handler for request" + request + " not found.");
         }
         try {
-            // здесь реализуется бизнес-логика
-            // ...
-            hubEventHandlers.get(request.getPayloadCase()).handle(request);
+            hubProtoHandlers.get(request.getPayloadCase()).handle(request);
 
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();

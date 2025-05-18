@@ -15,6 +15,8 @@ import java.time.Instant;
 @Slf4j
 public abstract class EventDataProducer {
 
+    // возможно, я неверно понимал задание, но сделал класс к уроку "Отправляем и принимаем сообщения"
+    // предполагалось, что он будет использоваться вместе с рандомайзером, который помещен в модуль common
     @GrpcClient("collector")
     private CollectorControllerGrpc.CollectorControllerBlockingStub collectorStub;
 

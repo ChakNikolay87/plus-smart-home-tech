@@ -3,6 +3,8 @@ package ru.yandex.practicum.utilities;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+// Класс написан для урока "Отправляем и принимаем сообщения".
+// Он пока не используется, но для чего-то его предложили сделать, так что пока не выбрасываю
 public class RandomUtil {
     private static final Map<String, Intervals> diapasonMap = Map.of(
             "temperature", new Intervals(-50, 60, 10),

@@ -9,37 +9,46 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
 public class KafkaClientImpl implements KafkaClient {
 
-    private final Map<String, Producer<String, SpecificRecordBase>> producerMap = new ConcurrentHashMap<>();
-    private final Map<String, Consumer<String, SpecificRecordBase>> consumerMap = new ConcurrentHashMap<>();
-    private final Map<String, KafkaProducer<String, SpecificRecordBase>> kafkaProducerMap = new ConcurrentHashMap<>();
-    private final Map<String, KafkaConsumer<String, SpecificRecordBase>> kafkaConsumerMap = new ConcurrentHashMap<>();
+    private final List<Producer<String, SpecificRecordBase>> producers = new ArrayList<>();
+    private final List<Consumer<String, SpecificRecordBase>> consumers = new ArrayList<>();
+    private final List<KafkaProducer<String, SpecificRecordBase>> kafkaProducers = new ArrayList<>();
+    private final List<KafkaConsumer<String, SpecificRecordBase>> kafkaConsumers = new ArrayList<>();
 
     @Override
-    public Producer<String, SpecificRecordBase> getProducer(String configName, Map<String, String> properties) {
-        return producerMap.computeIfAbsent(configName, key -> createProducer(properties));
+    public Producer<String, SpecificRecordBase> getProducer(Map<String, String> properties) {
+        Producer<String, SpecificRecordBase> producer = createProducer(properties);
+        producers.add(producer);
+        return producer;
     }
 
     @Override
-    public Consumer<String, SpecificRecordBase> getConsumer(String configName, Map<String, String> properties) {
-        return consumerMap.computeIfAbsent(configName, key -> createConsumer(properties));
+    public Consumer<String, SpecificRecordBase> getConsumer(Map<String, String> properties) {
+        Consumer<String, SpecificRecordBase> consumer = createConsumer(properties);
+        consumers.add(consumer);
+        return consumer;
     }
 
     @Override
-    public KafkaProducer<String, SpecificRecordBase> getKafkaProducer(String configName, Map<String, String> properties) {
-        return kafkaProducerMap.computeIfAbsent(configName, key -> createKafkaProducer(properties));
+    public KafkaProducer<String, SpecificRecordBase> getKafkaProducer(Map<String, String> properties) {
+        KafkaProducer<String, SpecificRecordBase> producer = createKafkaProducer(properties);
+        kafkaProducers.add(producer);
+        return producer;
     }
 
     @Override
-    public KafkaConsumer<String, SpecificRecordBase> getKafkaConsumer(String configName, Map<String, String> properties) {
-        return kafkaConsumerMap.computeIfAbsent(configName, key -> createKafkaConsumer(properties));
+    public KafkaConsumer<String, SpecificRecordBase> getKafkaConsumer(Map<String, String> properties) {
+        KafkaConsumer<String, SpecificRecordBase> consumer = createKafkaConsumer(properties);
+        kafkaConsumers.add(consumer);
+        return consumer;
     }
 
     private Producer<String, SpecificRecordBase> createProducer(Map<String, String> properties) {
@@ -69,10 +78,10 @@ public class KafkaClientImpl implements KafkaClient {
     @Override
     @PreDestroy
     public void stop() {
-        producerMap.values().forEach(Producer::close);
-        consumerMap.values().forEach(Consumer::close);
-        kafkaProducerMap.values().forEach(Producer::close);
-        kafkaConsumerMap.values().forEach(Consumer::close);
+        producers.forEach(Producer::close);
+        consumers.forEach(Consumer::close);
+        kafkaProducers.forEach(Producer::close);
+        kafkaConsumers.forEach(Consumer::close);
 
     }
 }

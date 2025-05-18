@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: analyzer
+  datasource:
+    url: jdbc:postgresql://localhost:6543/mydatabase
+    username: user
+    password: password
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: always
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+logging:
+  level:
+    ru.yandex.practicum.telemetry: TRACE
+    org:
+      springframework: ERROR
+      apache.kafka: WARN
+
+analyzer:
+  kafka:
+    consumers:
+      hubs:
+        properties:
+          bootstrap.servers: localhost:9092
+          group.id: telemetry-analyzer-hubs
+          client.id: telemetry.analyzer.hubs
+          auto.offset.reset: earliest
+          key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          value.deserializer: ru.yandex.practicum.kafka.deserializer.HubEventAvroDeserializer
+        topics:
+          hubs-events: telemetry.hubs.v1
+      snapshots:
+        properties:
+          bootstrap.servers: localhost:9092
+          group.id: telemetry-analyzer-snapshots
+          client.id: telemetry.analyzer.snapshots
+          auto.offset.reset: earliest
+          key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          value.deserializer: ru.yandex.practicum.kafka.deserializer.SensorsSnapshotAvroDeserializer
+        topics:
+          snapshots-events: telemetry.snapshots.v1
+
+grpc:
+  client:
+    hub-router:
+      address: 'static://localhost:59090'
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext

@@ -16,21 +16,18 @@ public class Analyzer {
         ConfigurableApplicationContext context =
                 SpringApplication.run(Analyzer.class, args);
 
-        final HubEventProcessor hubEventProcessor =
+        HubEventProcessor hubEventProcessor =
                 context.getBean(HubEventProcessor.class);
-        log.info("HubEventProcessor loaded: {}", hubEventProcessor);
         SnapshotProcessor snapshotProcessor =
                 context.getBean(SnapshotProcessor.class);
+
+        log.info("HubEventProcessor loaded: {}", hubEventProcessor);
         log.info("SnapshotProcessor loaded: {}", snapshotProcessor);
 
-        // запускаем в отдельном потоке обработчик событий
-        // от пользовательских хабов
-        Thread hubEventsThread = new Thread(hubEventProcessor);
-        hubEventsThread.setName("HubEventHandlerThread");
+        Thread hubEventsThread = new Thread(hubEventProcessor, "HubEventHandlerThread");
         hubEventsThread.start();
 
-        // В текущем потоке начинаем обработку
-        // снимков состояния датчиков
-        snapshotProcessor.start();
+        Thread snapshotThread = new Thread(snapshotProcessor, "SnapshotProcessorThread");
+        snapshotThread.start();
     }
 }

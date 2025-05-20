@@ -1,8 +1,10 @@
 package ru.yandex.practicum.processor;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.specific.SpecificRecordBase;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -22,19 +24,23 @@ public class HubEventProcessor implements Runnable {
     private final KafkaClient client;
     private final HubsConsumerConfig consumerConfig;
     private final HubHandler handler;
-    protected KafkaConsumer<String, SpecificRecordBase> consumer;
 
+    private Consumer<String, SpecificRecordBase> consumer;
+
+    @PostConstruct
+    public void initConsumer() {
+        consumer = client.getConsumer(consumerConfig.getHubsConsumerProperties().getProperties());
+        consumer.subscribe(consumerConfig.getHubsConsumerProperties().getTopics().values().stream().toList());
+        log.info("HubEventProcessor: Subscribed to topic: {}", consumer.subscription());
+    }
 
     @Override
     public void run() {
-        consumer = client.getKafkaConsumer(consumerConfig.getHubsConsumerProperties().getProperties());
-        consumer.subscribe(consumerConfig.getHubsConsumerProperties().getTopics().values().stream().toList());
-        log.info("HubEventProcessor: Subscribed to topic: {}", consumer.subscription());
         try {
             while (true) {
                 ConsumerRecords<String, SpecificRecordBase> records = consumer.poll(Duration.ofMillis(5000));
                 if (!records.isEmpty()) {
-                    log.info("\nHubEventProcessor: accepted " + records);
+                    log.info("\nHubEventProcessor: accepted {}", records);
                     for (ConsumerRecord<String, SpecificRecordBase> record : records) {
                         HubEventAvro event = (HubEventAvro) record.value();
                         handler.habEventHandle(event);
@@ -49,8 +55,4 @@ public class HubEventProcessor implements Runnable {
             consumer.close();
         }
     }
-
-    public void start() {
-    }
-
 }

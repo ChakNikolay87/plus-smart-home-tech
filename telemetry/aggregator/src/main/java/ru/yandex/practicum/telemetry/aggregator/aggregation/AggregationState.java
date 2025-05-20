@@ -35,37 +35,44 @@ public class AggregationState {
         };
     }
 
-    private SensorStateAvro getPreviousSensorState(String hubId, String sensorId) {
+    private Optional<SensorStateAvro> getPreviousSensorState(String hubId, String sensorId) {
         return Optional.ofNullable(snapshots.get(hubId))
                 .map(SensorsSnapshotAvro::getSensorsState)
-                .map(sensorsState -> sensorsState.get(sensorId))
-                .orElse(null);
+                .map(sensors -> sensors.get(sensorId));
     }
+
 
     private <T> SensorsSnapshotAvro isNewState(SensorEventAvro value, Class<T> sensorClass) {
         T sensorData = sensorClass.cast(value.getPayload());
-        SensorStateAvro previousState = getPreviousSensorState(value.getHubId(), value.getId());
+        String hubId = value.getHubId();
+        String sensorId = value.getId();
 
-        if (previousState != null) {
-            if (!previousState.getData().getClass().equals(sensorData.getClass())) {
-                log.trace("Wrong class of sensor. Old class {}, new class {}",
-                        previousState.getData().getClass(), sensorData.getClass());
-                return null;
-            }
-            if (previousState.getData().equals(sensorData) ||
-                    value.getTimestamp().isBefore(previousState.getTimestamp())) {
-                return null;
-            }
-        }
+        Optional<SensorStateAvro> previousStateOpt = getPreviousSensorState(hubId, sensorId);
+
+        boolean isChanged = previousStateOpt
+                .map(prev -> {
+                    if (!prev.getData().getClass().equals(sensorData.getClass())) {
+                        log.trace("Wrong class of sensor. Old class {}, new class {}",
+                                prev.getData().getClass(), sensorData.getClass());
+                        return false; // Отбросим
+                    }
+                    if (prev.getData().equals(sensorData)) {
+                        return false;
+                    }
+                    return !value.getTimestamp().isBefore(prev.getTimestamp());
+                })
+                .orElse(true); // Если предыдущее значение отсутствует — считаем новым
+
+        if (!isChanged) return null;
 
         SensorStateAvro newState = SensorStateAvro.newBuilder()
                 .setTimestamp(value.getTimestamp())
                 .setData(sensorData)
                 .build();
+
         log.trace("New snapshot value {} ", newState);
-        log.trace("snapshots.get({}): {}", value.getHubId(), snapshots.get(value.getHubId()));
-        snapshots.get(value.getHubId()).getSensorsState().put(value.getId(), newState);
-        return snapshots.get(value.getHubId());
+        snapshots.get(hubId).getSensorsState().put(sensorId, newState);
+        return snapshots.get(hubId);
     }
 
 }

@@ -12,14 +12,10 @@ import org.springframework.stereotype.Component;
 @ToString
 @Component
 public class HubsConsumerConfig {
-    @Autowired
-    private HubsConsumerProperties hubsConsumerProperties;
 
-    @PostConstruct
-    public void checkInit() {
-        if (this.hubsConsumerProperties == null) {
-            throw new IllegalStateException("HubsConsumerConfig: consumer не инициализирован!");
-        }
+    private final HubsConsumerProperties hubsConsumerProperties;
+
+    public HubsConsumerConfig(HubsConsumerProperties hubsConsumerProperties) {
+        this.hubsConsumerProperties = hubsConsumerProperties;
     }
-
 }

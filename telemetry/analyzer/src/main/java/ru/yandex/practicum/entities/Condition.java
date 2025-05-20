@@ -33,4 +33,19 @@ public class Condition {
 
     @Column(name = "value_bool")
     private Boolean valueBool;
+
+
+
+    public boolean isValueFits(int value) {
+        if (valueInt == null || operation == null) {
+            return false;
+        }
+
+        return switch (operation) {
+            case EQUALS -> value == valueInt;
+            case GREATER_THAN -> value > valueInt;
+            case LOWER_THAN -> value < valueInt;
+        };
+    }
+
 }

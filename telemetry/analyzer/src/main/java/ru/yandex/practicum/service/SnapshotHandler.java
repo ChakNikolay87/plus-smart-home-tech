@@ -27,13 +27,13 @@ public class SnapshotHandler {
     private final Map<Class<?>, BiFunction<Condition, Object, Boolean>> isFits = Map.of(
             ClimateSensorAvro.class, this::isFitsClimateCondition,
             LightSensorAvro.class, this::isFitsLightCondition,
-            MotionSensorAvro.class, this::isFitsMotionCondition,
-            SwitchSensorAvro.class, this::isFitsSwitchCondition,
-            TemperatureSensorAvro.class, this::isFitsTemperatureCondition
+            MotionSensorAvro.class, this::isFitsGenericCondition,
+            SwitchSensorAvro.class, this::isFitsGenericCondition,
+            TemperatureSensorAvro.class, this::isFitsGenericCondition
     );
 
     public List<DeviceActionRequest> process(SensorsSnapshotAvro snapshotAvro) {
-        log.info("\nSnapshotHandler.process: received {}", snapshotAvro);
+        log.info("SnapshotHandler.process: received {}", snapshotAvro);
         List<Scenario> scenarios = scenarioRepository.findByHubId(snapshotAvro.getHubId());
         return scenarios.stream()
                 .filter(s -> checkScenario(s, snapshotAvro))
@@ -43,19 +43,19 @@ public class SnapshotHandler {
     }
 
     private boolean checkScenario(Scenario scenario, SensorsSnapshotAvro snapshotAvro) {
-        log.info("\nSnapshotHandler.checkScenario: check scenario {}", scenario);
+        log.info("SnapshotHandler.checkScenario: check scenario {}", scenario);
 
         return scenario.getConditions().entrySet().stream()
                 .allMatch(entry -> {
                     String sensorId = entry.getKey();
                     Condition condition = entry.getValue();
-                    log.info("\nCondition: {}", condition);
+                    log.info("Condition: {}", condition);
                     SensorStateAvro state = snapshotAvro.getSensorsState().get(sensorId);
-                    log.info("\nSensorStateAvro: {}", state);
+                    log.info("SensorStateAvro: {}", state);
 
-                    if (state == null || state.getData() == null)
+                    if (state == null || state.getData() == null) {
                         return false;
-
+                    }
                     Object payload = state.getData();
                     BiFunction<Condition, Object, Boolean> inspector = isFits.get(payload.getClass());
                     if (inspector == null)
@@ -67,58 +67,43 @@ public class SnapshotHandler {
 
     private Boolean isFitsClimateCondition(Condition condition, Object payload) {
         ClimateSensorAvro sensor = (ClimateSensorAvro) payload;
-        log.info("\nClimateSensorAvro: {}, check condition {}", sensor, condition);
-        boolean result = switch (condition.getType()) {
-            case TEMPERATURE -> isValueFits(condition, sensor.getTemperatureC());
-            case HUMIDITY -> isValueFits(condition, sensor.getHumidity());
-            case CO2LEVEL -> isValueFits(condition, sensor.getCo2Level());
-            default -> false;
+        log.info("ClimateSensorAvro: {}, check condition {}", sensor, condition);
+
+        Object value = switch (condition.getType()) {
+            case TEMPERATURE -> sensor.getTemperatureC();
+            case HUMIDITY -> sensor.getHumidity();
+            case CO2LEVEL -> sensor.getCo2Level();
+            default -> null;
         };
-        log.info("\nResult {}", result);
+
+        if (value == null) return false;
+
+        boolean result = condition.getType().matches(condition, value);
+        log.info("Result {}", result);
         return result;
     }
 
     private Boolean isFitsLightCondition(Condition condition, Object payload) {
         LightSensorAvro sensor = (LightSensorAvro) payload;
-        if (condition.getType() == ConditionType.LUMINOSITY) {
-            return isValueFits(condition, sensor.getLuminosity());
-        } else {
+        if (condition.getType() != ConditionType.LUMINOSITY) {
             return true;
         }
+        return condition.getType().matches(condition, sensor.getLuminosity());
     }
 
-    private Boolean isFitsMotionCondition(Condition condition, Object payload) {
-        MotionSensorAvro sensor = (MotionSensorAvro) payload;
-        if (condition.getType() == ConditionType.MOTION) {
-            return sensor.getMotion() == condition.getValueBool();
+    private Boolean isFitsGenericCondition(Condition condition, Object payload) {
+        Object sensorValue;
+
+        if (payload instanceof MotionSensorAvro && condition.getType() == ConditionType.MOTION) {
+            sensorValue = ((MotionSensorAvro) payload).getMotion();
+        } else if (payload instanceof SwitchSensorAvro && condition.getType() == ConditionType.SWITCH) {
+            sensorValue = ((SwitchSensorAvro) payload).getState();
+        } else if (payload instanceof TemperatureSensorAvro && condition.getType() == ConditionType.TEMPERATURE) {
+            sensorValue = ((TemperatureSensorAvro) payload).getTemperatureC();
         } else {
             return false;
         }
-    }
 
-    private Boolean isFitsSwitchCondition(Condition condition, Object payload) {
-        SwitchSensorAvro sensor = (SwitchSensorAvro) payload;
-        if (condition.getType() == ConditionType.SWITCH) {
-            return sensor.getState() == condition.getValueBool();
-        } else {
-            return false;
-        }
-    }
-
-    private Boolean isFitsTemperatureCondition(Condition condition, Object payload) {
-        TemperatureSensorAvro sensor = (TemperatureSensorAvro) payload;
-        if (condition.getType() == ConditionType.TEMPERATURE) {
-            return isValueFits(condition, sensor.getTemperatureC());
-        } else {
-            return false;
-        }
-    }
-
-    private boolean isValueFits(Condition condition, int value) {
-        return switch (condition.getOperation()) {
-            case EQUALS -> value == condition.getValueInt();
-            case GREATER_THAN -> value > condition.getValueInt();
-            case LOWER_THAN -> value < condition.getValueInt();
-        };
+        return condition.getType().matches(condition, sensorValue);
     }
 }

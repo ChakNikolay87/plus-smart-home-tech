@@ -3,10 +3,12 @@ package ru.yandex.practicum.telemetry.aggregator.aggregation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.specific.SpecificRecordBase;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
@@ -29,54 +31,42 @@ public class AggregationStarter {
     private final KafkaClient client;
     private final SnapshotsProducerConfig snapshotsProducerConfig;
     private final SensorsConsumerConfig sensorsConsumerConfig;
-    protected KafkaConsumer<String, SpecificRecordBase> consumer;
-    protected KafkaProducer<String, SpecificRecordBase> producer;
+    protected Consumer<String, SpecificRecordBase> consumer;
+    protected Producer<String, SpecificRecordBase> producer;
     private final AggregationState aggregationState;
 
-    /**
-     * Метод для начала процесса агрегации данных.
-     * Подписывается на топики для получения событий от датчиков,
-     * формирует снимок их состояния и записывает в кафку.
-     */
-
     public void start() {
-        consumer = client.getKafkaConsumer(sensorsConsumerConfig.getConsumerConfig().getProperties());
+        consumer = client.getConsumer(sensorsConsumerConfig.getConsumerConfig().getProperties());
         consumer.subscribe(sensorsConsumerConfig.getConsumerConfig().getTopics().values().stream().toList());
-        producer = client.getKafkaProducer(snapshotsProducerConfig.getProducerConfig().getProperties());
+        producer = client.getProducer(snapshotsProducerConfig.getProducerConfig().getProperties());
 
         try {
-            // Цикл обработки событий
             while (true) {
                 try {
                     ConsumerRecords<String, SpecificRecordBase> records = consumer.poll(Duration.ofMillis(5000));
                     if (!records.isEmpty()) {
                         log.trace("\nAggregationStarter: accepted {}", records);
                         for (ConsumerRecord<String, SpecificRecordBase> record : records) {
-                            // Здесь происходит обработка полученных данных
-                                    SensorEventAvro sensorEventAvro = (SensorEventAvro) record.value();
-                                    SensorsSnapshotAvro thisSnapshot = aggregationState.sensorEventHandle(sensorEventAvro);
-                                    if (thisSnapshot != null) {
-                                        log.trace("\nAggregationStarter: new snapshot for send {}", thisSnapshot);
-                                        producer.send(new ProducerRecord<>("telemetry.snapshots.v1", null, thisSnapshot));
-                                    }
+                            SensorEventAvro sensorEventAvro = (SensorEventAvro) record.value();
+                            SensorsSnapshotAvro thisSnapshot = aggregationState.sensorEventHandle(sensorEventAvro);
+                            if (thisSnapshot != null) {
+                                log.trace("\nAggregationStarter: new snapshot for send {}", thisSnapshot);
+                                producer.send(new ProducerRecord<>("telemetry.snapshots.v1", null, thisSnapshot));
+                            }
                         }
                         consumer.commitSync();
                     }
                 } catch (WakeupException e) {
-                    // Нормальный выход из цикла при остановке
                     log.info("Консьюмер был остановлен.");
                     break;
                 } catch (Exception e) {
                     log.error("Ошибка при обработке данных от датчиков", e);
                 }
             }
-
         } catch (WakeupException ignored) {
-            // игнорируем - закрываем консьюмера и продюсера в блоке finally
         } catch (Exception e) {
             log.error("Ошибка во время обработки событий от датчиков", e);
         } finally {
-
             try {
                 producer.flush();
                 consumer.commitSync();

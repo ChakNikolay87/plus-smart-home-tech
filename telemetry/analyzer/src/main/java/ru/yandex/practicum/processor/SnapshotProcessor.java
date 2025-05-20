@@ -3,6 +3,7 @@ package ru.yandex.practicum.processor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.specific.SpecificRecordBase;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -20,36 +21,53 @@ import java.util.List;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class SnapshotProcessor implements Runnable {
+
     private final KafkaClient client;
     private final SnapshotConsumerConfig consumerConfig;
     private final SnapshotHandler handler;
     private final HubRouterGrpcProducer hubRouterGrpcProducer;
-    protected KafkaConsumer<String, SpecificRecordBase> consumer;
+
+    private final Consumer<String, SpecificRecordBase> consumer;
+
+    private volatile boolean running = true;
+
+    public SnapshotProcessor(KafkaClient client,
+                             SnapshotConsumerConfig consumerConfig,
+                             SnapshotHandler handler,
+                             HubRouterGrpcProducer hubRouterGrpcProducer) {
+        this.client = client;
+        this.consumerConfig = consumerConfig;
+        this.handler = handler;
+        this.hubRouterGrpcProducer = hubRouterGrpcProducer;
+
+        this.consumer = client.getConsumer(consumerConfig.getSnapshotConsumerProperties().getProperties());
+        this.consumer.subscribe(consumerConfig.getSnapshotConsumerProperties().getTopics().values().stream().toList());
+
+        log.info("SnapshotProcessor: Subscribed to topic: {}", consumer.subscription());
+    }
 
     @Override
     public void run() {
-        consumer = client.getKafkaConsumer(consumerConfig.getSnapshotConsumerProperties().getProperties());
-        consumer.subscribe(consumerConfig.getSnapshotConsumerProperties().getTopics().values().stream().toList());
-        log.info("SnapshotProcessor: Subscribed to topic: {}", consumer.subscription());
-        try  {
-            while (true) {
-                ConsumerRecords<String, SpecificRecordBase> records = consumer.poll(Duration.ofMillis(1000));
+        try {
+            while (running) {
+                var records = consumer.poll(Duration.ofMillis(1000));
                 if (!records.isEmpty()) {
                     log.info("SnapshotProcessor: records {}", records);
                     for (ConsumerRecord<String, SpecificRecordBase> record : records) {
                         SensorsSnapshotAvro snapshot = (SensorsSnapshotAvro) record.value();
                         List<DeviceActionRequest> messageList = handler.process(snapshot);
                         if (!messageList.isEmpty()) {
-                            log.info("\nSend {}", messageList);
+                            log.info("Send {}", messageList);
                             sendToGrpc(messageList);
                         }
                     }
                 }
             }
         } catch (WakeupException e) {
-            log.info("Snapshot processor stopping");
+            if (running) {
+                log.error("WakeupException in SnapshotProcessor", e);
+            }
         } catch (Exception e) {
             log.error("Unexpected error in SnapshotProcessor", e);
         } finally {
@@ -57,10 +75,9 @@ public class SnapshotProcessor implements Runnable {
         }
     }
 
-    public void start() {
-        Thread thread = new Thread(this);
-        thread.setName("SnapshotProcessorThread");
-        thread.start();
+    public void shutdown() {
+        running = false;
+        consumer.wakeup();
     }
 
     private void sendToGrpc(List<DeviceActionRequest> requests) {

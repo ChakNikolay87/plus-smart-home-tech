@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class SensorsConsumerConfig {
     private final SensorsConsumerProperties consumerConfig;
     //используется в качестве ключа в Map консюмеров и продюсеров в KafkaClient
-    private final String configName = "aggregator-consumer";
+    public static final String CONFIG_NAME = "aggregator-consumer";
+
 
 }

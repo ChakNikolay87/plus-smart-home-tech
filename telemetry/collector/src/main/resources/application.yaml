@@ -1,31 +1,11 @@
 spring:
   application:
     name: collector
-server:
-  port: 8081
-
-grpc:
-  server:
-    port: 59091
-  client:
-    analytics:
-      address: static://localhost:9091
-      negotiationType: plaintext        # Отключение TLS для локальной отладки
-
-logging:
-  level:
-    ru.yandex.practicum.telemetry: TRACE
-    org:
-      springframework: ERROR
-      apache.kafka: WARN
-
-collector:
-  kafka:
-    producer:
-      properties:
-        "bootstrap.servers": localhost:9092
-        "key.serializer": org.apache.kafka.common.serialization.StringSerializer
-        "value.serializer": ru.yandex.practicum.kafka.serializer.GeneralAvroSerializer
-      topics:
-        sensor-events: telemetry.sensors.v1
-        hubs-events: telemetry.hubs.v1
+  config:
+    import: configserver:http://localhost:8888
+cloud:
+  config:
+    fail-fast: true
+    retry:
+      useRandomPolicy: true
+      max-interval: 6000

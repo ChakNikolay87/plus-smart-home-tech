@@ -1,5 +1,6 @@
 package ru.yandex.practicum.commerce.cart.exception;
 
+import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +39,24 @@ public class ErrorHandlerController {
         return buildResponseEntity(ex, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(FeignException.class)
+    public ResponseEntity<ApiError> handleFeignException(FeignException ex) {
+        if (ex.status() == HttpStatus.NOT_FOUND.value()) {
+            return buildResponseEntity(
+                    new ProductInShoppingCartLowQuantityInWarehouse("Shopping cart has not passed the stock check"),
+                    HttpStatus.BAD_REQUEST
+            );
+        } else {
+            return buildResponseEntity(
+                    new RemoteServiceException("Error in the remote service 'warehouse'"),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+
     private ResponseEntity<ApiError> buildResponseEntity(Exception ex, HttpStatus status) {
-        log.warn(ex.getMessage());
+        log.error("Exception occurred: {}", ex.getMessage(), ex);
         return new ResponseEntity<>(
                 ApiError.builder()
                         .status(status.toString())
@@ -50,4 +67,5 @@ public class ErrorHandlerController {
                 status
         );
     }
+
 }

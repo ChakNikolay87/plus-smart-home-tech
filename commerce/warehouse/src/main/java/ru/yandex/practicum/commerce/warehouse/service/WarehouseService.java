@@ -105,7 +105,7 @@ public class WarehouseService {
             log.info("Setting product quantity state for product in shopping store: {}", warehouseProduct);
             shoppingStoreClient.setProductQuantityState(SetProductQuantityStateRequest.builder()
                     .productId(request.getProductId())
-                    .quantityState(getQuantityState(warehouseProduct.getQuantity()))
+                    .quantityState(QuantityState.fromQuantity(warehouseProduct.getQuantity()))
                     .build());
             log.info("Quantity state for product in shopping store: {} is set", warehouseProduct);
         } catch (FeignException ex) {
@@ -116,6 +116,7 @@ public class WarehouseService {
             }
         }
     }
+
 
     public AddressDto getWarehouseAddress() {
         log.info("Getting address from warehouse");
@@ -130,17 +131,5 @@ public class WarehouseService {
 
     private double getVolume(Dimension dimension) {
         return dimension.getDepth() * dimension.getHeight() * dimension.getWidth();
-    }
-
-    private QuantityState getQuantityState(long quantity) {
-        if (quantity <= 0) {
-            return QuantityState.ENDED;
-        } else if (quantity < 10) {
-            return QuantityState.FEW;
-        } else if (quantity <= 100) {
-            return QuantityState.ENOUGH;
-        } else {
-            return QuantityState.MANY;
-        }
     }
 }

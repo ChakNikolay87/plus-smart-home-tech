@@ -1,6 +1,4 @@
 spring:
-  application:
-    name: shopping-store
   sql:
     init:
       mode: always

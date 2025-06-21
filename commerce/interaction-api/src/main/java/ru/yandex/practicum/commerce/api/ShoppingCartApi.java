@@ -52,7 +52,7 @@ public interface ShoppingCartApi {
      * Изменение количества товара в корзине
      *
      * @param username - имя пользователя
-     * @param products - отображение идентификатора товара на отобранное количество
+     * @param request  - запрос на изменение количества товара
      * @return - DTO корзины пользователя
      */
     @PostMapping("/change-quantity")

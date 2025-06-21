@@ -7,6 +7,7 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -35,5 +36,5 @@ public class ProductDto {
 
     @NotNull
     @Min(value = 1, message = "Price should be less than 1")
-    Float price;
+    BigDecimal price;
 }

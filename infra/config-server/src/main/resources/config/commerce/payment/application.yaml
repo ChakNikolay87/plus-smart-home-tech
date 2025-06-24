@@ -1,0 +1,21 @@
+spring:
+  sql:
+    init:
+      mode: always
+  jpa:
+    hibernate:
+      ddl-auto: none
+  datasource:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:6543/commerce
+    username: main
+    password: main
+
+logging:
+  level:
+    ru.yandex.practicum.commerce.order: INFO
+    org:
+      springframework: ERROR
+
+server:
+  port: 0

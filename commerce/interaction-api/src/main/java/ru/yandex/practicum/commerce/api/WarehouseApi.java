@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import ru.yandex.practicum.commerce.dto.cart.ShoppingCartDto;
-import ru.yandex.practicum.commerce.dto.warehouse.AddProductToWarehouseRequest;
-import ru.yandex.practicum.commerce.dto.warehouse.AddressDto;
-import ru.yandex.practicum.commerce.dto.warehouse.BookedProductsDto;
-import ru.yandex.practicum.commerce.dto.warehouse.NewProductInWarehouseRequest;
+import ru.yandex.practicum.commerce.dto.warehouse.*;
+
+import java.util.Map;
+import java.util.UUID;
 
 public interface WarehouseApi {
     /**
@@ -44,4 +44,29 @@ public interface WarehouseApi {
      */
     @GetMapping("/address")
     AddressDto getWarehouseAddress();
+
+    /**
+     * Передача товаров в доставку
+     *
+     * @param request - запрос на передачу в доставку
+     */
+    @PostMapping("/shipped")
+    void shippedToDelivery(@RequestBody @Valid ShippedToDeliveryRequest request);
+
+    /**
+     * Возврат товаров на склад
+     *
+     * @param products - отображение идентификатора товара на отобранное количество
+     */
+    @PostMapping("/return")
+    void acceptReturn(@RequestBody Map<UUID, Long> products);
+
+    /**
+     * Сборка товаров к заказу для подготовки к отправке
+     *
+     * @param request - корзина товаров
+     * @return - общие сведения по бронированию
+     */
+    @PostMapping("/assembly")
+    BookedProductsDto assemblyProductsForOrder(@RequestBody @Valid AssemblyProductsForOrderRequest request);
 }

@@ -20,7 +20,7 @@ public class ErrorHandlerController {
     }
 
     private ResponseEntity<ApiError> buildResponseEntity(Exception ex, HttpStatus status) {
-        log.warn(ex.getMessage());
+        log.warn("Handled exception", ex);
         return new ResponseEntity<>(
                 ApiError.builder()
                         .status(status.toString())

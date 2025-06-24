@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.commerce.delivery.feign.OrderClient;
 import ru.yandex.practicum.commerce.delivery.feign.WarehouseClient;
 import ru.yandex.practicum.commerce.delivery.model.Address;
@@ -27,8 +28,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DeliveryService {
     private static final BigDecimal BASE_RATE = BigDecimal.valueOf(5.0); // базовая ставка доставки
-    private static final BigDecimal ADDRESS1_RATE = BigDecimal.valueOf(1.0); // коэффициент умножения для доставки по адресу 1
-    private static final BigDecimal ADDRESS2_RATE = BigDecimal.valueOf(2.0); // коэффициент умножения для доставки по адресу 2
+    private static final BigDecimal WAREHOUSE_ADDRESS_RATE = BigDecimal.valueOf(1.0); // коэффициент умножения для доставки по адресу 1
+    private static final BigDecimal PICKUP_POINT_ADDRESS_RATE  = BigDecimal.valueOf(2.0); // коэффициент умножения для доставки по адресу 2
     private static final BigDecimal FRAGILE_RATE = BigDecimal.valueOf(0.2); // коэффициент умножения для хрупкого товара
     private static final BigDecimal WEIGHT_RATE = BigDecimal.valueOf(0.3); // коэффициент умножения для веса
     private static final BigDecimal VOLUME_RATE = BigDecimal.valueOf(0.2); // коэффициент умножения для объема
@@ -47,6 +48,7 @@ public class DeliveryService {
         return newDeliveryDto;
     }
 
+    @Transactional
     public void deliverySuccessful(UUID orderId) {
         log.info("Creating successful status for order ID: {}", orderId);
         Delivery delivery = getDeliveryByDeliveryId(orderId);
@@ -63,6 +65,7 @@ public class DeliveryService {
         log.info("Delivery has been completed: {}", delivery);
     }
 
+    @Transactional
     public void deliveryPicked(UUID orderId) {
         log.info("Picking delivery with ID: {}", orderId);
         Delivery delivery = getDeliveryByDeliveryId(orderId);
@@ -87,6 +90,7 @@ public class DeliveryService {
         log.info("Delivery has been picked: {}", delivery);
     }
 
+    @Transactional
     public void deliveryFailed(UUID orderId) {
         log.info("Setting delivery status failed to order ID: {}", orderId);
         Delivery delivery = getDeliveryByDeliveryId(orderId);
@@ -111,9 +115,9 @@ public class DeliveryService {
         Address toAddress = delivery.getToAddress();
 
         if (fromAddress.toString().contains("ADDRESS_1")) {
-            deliveryCost = BASE_RATE.multiply(ADDRESS1_RATE);
+            deliveryCost = BASE_RATE.multiply(WAREHOUSE_ADDRESS_RATE);
         } else if (fromAddress.toString().contains("ADDRESS_2")) {
-            deliveryCost = deliveryCost.add(BASE_RATE.multiply(ADDRESS2_RATE));
+            deliveryCost = deliveryCost.add(BASE_RATE.multiply(PICKUP_POINT_ADDRESS_RATE));
         }
 
         if (orderDto.isFragile()) {

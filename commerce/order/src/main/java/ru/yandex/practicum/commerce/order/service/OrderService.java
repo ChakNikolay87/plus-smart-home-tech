@@ -121,6 +121,7 @@ public class OrderService {
         return modelMapper.map(order, OrderDto.class);
     }
 
+    @Transactional
     public OrderDto productReturn(ProductReturnRequest request) {
         log.info("Returning products {}", request);
         Order order = getOrderById(request.getOrderId());
@@ -138,6 +139,7 @@ public class OrderService {
         return modelMapper.map(order, OrderDto.class);
     }
 
+    @Transactional
     public OrderDto payment(UUID orderId) {
         log.info("Paying order ID {}", orderId);
         Order order = getOrderById(orderId);
@@ -156,6 +158,7 @@ public class OrderService {
         return modelMapper.map(order, OrderDto.class);
     }
 
+    @Transactional
     public OrderDto paymentFailed(UUID orderId) {
         log.info("Failed paying order ID {}", orderId);
         Order order = getOrderById(orderId);
@@ -174,6 +177,7 @@ public class OrderService {
         return modelMapper.map(order, OrderDto.class);
     }
 
+    @Transactional
     public OrderDto delivery(UUID orderId) {
         log.info("Delivering order ID {}", orderId);
         Order order = getOrderById(orderId);
@@ -191,6 +195,7 @@ public class OrderService {
         return modelMapper.map(order, OrderDto.class);
     }
 
+    @Transactional
     public OrderDto deliveryFailed(UUID orderId) {
         log.info("Fail delivering order ID {}", orderId);
         Order order = getOrderById(orderId);
@@ -208,6 +213,7 @@ public class OrderService {
         return modelMapper.map(order, OrderDto.class);
     }
 
+    @Transactional
     public OrderDto completed(UUID orderId) {
         log.info("Competing order ID {}", orderId);
         Order order = getOrderById(orderId);
@@ -217,6 +223,7 @@ public class OrderService {
         return modelMapper.map(order, OrderDto.class);
     }
 
+    @Transactional
     public OrderDto calculateTotalCost(UUID orderId) {
         log.info("Calculating total cost for order ID {}", orderId);
         Order order = getOrderById(orderId);
@@ -233,6 +240,7 @@ public class OrderService {
         return modelMapper.map(order, OrderDto.class);
     }
 
+    @Transactional
     public OrderDto calculateDeliveryCost(UUID orderId) {
         log.info("Calculating delivery cost for order ID {}", orderId);
         Order order = getOrderById(orderId);
@@ -249,6 +257,7 @@ public class OrderService {
         return modelMapper.map(order, OrderDto.class);
     }
 
+    @Transactional
     public OrderDto assembly(UUID orderId) {
         log.info("Assembling order ID {}", orderId);
         Order order = getOrderById(orderId);
@@ -271,6 +280,7 @@ public class OrderService {
         return modelMapper.map(order, OrderDto.class);
     }
 
+    @Transactional
     public OrderDto assemblyFailed(UUID orderId) {
         log.info("Fail assembling order ID {}", orderId);
         Order order = getOrderById(orderId);
